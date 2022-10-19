@@ -4,16 +4,16 @@
 /* if API does not respond, place error 404 msg in <h1> tag of html
 */
 
-let API = 'http://localhost:3000/api/products'
 
-fetch(API)
+fetch('http://localhost:3000/api/products')
   .then(data => data.json())
   .then(data => getProducts(data))
 
   .catch((error) => {
     document.getElementsByClassName(".titles").innerHTML = "<h1>error 404</h1>";
     console.log("error 404, could not connect to API" + error);
-  });
+  })
+
 
 // use data from API to change DOM of index.html 
 /* create variable 'items' to be used in the 'items' section of index.html
@@ -26,7 +26,7 @@ fetch(API)
 function getProducts(data) {
   let items = document.querySelector("#items");
   for (let article of data) {
-    items.innerHTML += (`<a href="./product/${article._id}.html">
+    items.innerHTML += (`<a href="./product.html?_id=${article._id}">
     <article>
       <img src="${article.imageUrl}" alt="${article.altTXT}"/>
       <h3>${article.name}</h3>
@@ -35,4 +35,3 @@ function getProducts(data) {
     </a>`);
   }
 }
-
