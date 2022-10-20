@@ -1,13 +1,13 @@
-// get data from API
-/* if API responds, put data in .json
+// get products from API
+/* if API responds, put data in products.json
 /* then execute function 'getProducts' with data from API
 /* if API does not respond, place error 404 msg in <h1> tag of html
 */
 
 
 fetch('http://localhost:3000/api/products')
-  .then(data => data.json())
-  .then(data => getProducts(data))
+  .then(products => products.json())
+  .then(products => showProducts(products))
 
   .catch((error) => {
     document.getElementsByClassName(".titles").innerHTML = "<h1>error 404</h1>";
@@ -23,10 +23,10 @@ fetch('http://localhost:3000/api/products')
 /* product name and description 
 */
 
-function getProducts(data) {
-  let items = document.querySelector("#items");
-  for (let article of data) {
-    items.innerHTML += (`<a href="./product.html?_id=${article._id}">
+function showProducts(products) {
+  let product = document.querySelector("#items");
+  for (let article of products) {
+    product.innerHTML += (`<a href="./product.html?_id=${article._id}">
     <article>
       <img src="${article.imageUrl}" alt="${article.altTXT}"/>
       <h3>${article.name}</h3>
