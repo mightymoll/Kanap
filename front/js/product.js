@@ -21,8 +21,7 @@ console.log(productInfo);
 
 fetch(productInfo)
   .then((response) => response.json())
-  .then((response) => console.log(response))
-  .then(() => productDisplay())
+  .then((product) => productDetails(product))
 
   .catch((error) => {
     document.getElementsByClassName(".titles").innerHTML = "<h1>error 404</h1>";
@@ -30,14 +29,43 @@ fetch(productInfo)
   });
 
 
-/*
-function productDisplay() {
-  const { imgUrl, altTxt, name, price, description, colors } = attributes;
-  let info = document.querySelector("#items");
-  for (let product of all) {
-    info.innerHTML +=
-      //product image and alt info
-      let img = document.createElement('img');
-    img.src = imgUrl;
-    img.alt = altTxt;
-    document.getElementsByClassName('item__img')[0].appendChild(img);*/
+function productDetails(product) {
+  const item = product; //make 'product' object iterable
+  console.log(item); //log results for verification
+  // photo //
+  let img = document.createElement("img"); //create img in DOM w/product values
+  img.src = item.imageUrl;
+  img.alt = item.altTxt;
+  document.getElementsByClassName('item__img')[0].appendChild(img); //add img element to DOM
+
+  // name //
+  let name = document.getElementById('title');
+  name.innerHTML += (`<h1>${item.name}</h1>`);
+
+  // price //
+  let price = document.getElementById('price');
+  price.innerHTML += (`<span>${item.price}</span>`);
+
+  // description //
+  let productDesc = document.getElementById('description');
+  productDesc.innerHTML += (`<p>${item.description}</p>`);
+
+  // color select //
+  let colors = item.colors;
+  console.log(colors); //for verification purposes
+
+  // Until number of colors = 0
+  /* continue to add <option> elements to DOM 
+  /* with values from 'colors' array */
+
+  //i represents the variable 'colors'
+
+  for (let i = 0; i < colors.length; i++) {
+    let colorName = colors[i];
+    const option = document.createElement("option");
+    option.textContent = colorName;
+    option.value = colorName;
+    const optionAdd = document.getElementById('colors'); //location of select dropdown
+    optionAdd.appendChild(option);
+  }
+}
