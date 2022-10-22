@@ -20,7 +20,7 @@ console.log(productInfo);
 
 fetch(productInfo)
   .then((response) => response.json())
-  .then((product) => productDetails(product))
+  .then((product) => productDisplay(product))
 
   .catch((error) => {
     document.getElementsByClassName(".titles").innerHTML = "<h1>error 404</h1>";
@@ -28,7 +28,7 @@ fetch(productInfo)
   });
 
 // populate DOM with product info from API
-function productDetails(product) {
+function productDisplay(product) {
   const item = product; //make 'product' object iterable
   console.log(item); //log results for verification
 
@@ -60,41 +60,77 @@ function productDetails(product) {
   for (let i = 0; i < colors.length; i++) {
     let colorName = colors[i];
     const option = document.createElement("option");
-    option.textContent = colorName;
     option.value = colorName;
+    option.textContent = colorName;
     const optionAdd = document.getElementById('colors'); //location of select dropdown
     optionAdd.appendChild(option);
   }
 }
 
-// log customer choices
+// set button event - when clicked, run function 'logOptions' */
 
-// button - set click event
-/* when button is clicked, run function 'addToCart' */
 let button = document.getElementById('addToCart');
-button.addEventListener("click", addToCart);
+button.addEventListener("click", logOptions);
 
-// create cart item (product w/customer selections) map to store locally
+// log customer product choices
 /* retrieve selected color and item quantity from DOM
-/* create map 'cartItem' (product id, color choice, quantity)
-/* if color and quantity are both complete, set cartItem in localstorage (stringified for easy retrieval)
-/* if not, prompt user to check that they have selected a color and entered a quantity */
+/* define variable for 'productToAdd' (to cart)
+/* if both a color and qty are entered, run function 'addToCart'
+/* if not, alert customer to complete selections */
 
-function addToCart() {
-  let selectedColor = document.getElementById('colors').selectedOptions[0].value;
-  let itemQuantity = document.getElementById('quantity').value;
+function logOptions() {
+  let productColor = document.getElementById('colors').value;
+  console.log(productColor);
 
-  let cartItem = new Map();
-  cartItem.set('product', productId)
-    .set('color', selectedColor)
-    .set('quantity', itemQuantity);
+  let productQty = Number(document.getElementById('quantity').value);
+  console.log(productQty);
 
-  if (selectedColor && itemQuantity > 0) {
-    localStorage.setItem('cartItem', JSON.stringify(Map))
-    alert('Article ajouté au panier avec succès');
+  var productToAdd = {
+    id: (`${productId}`),
+    color: (`${productColor}`),
+    qty: (`${productQty}`)
+  }
+  console.log(productToAdd)
+
+  if (productColor !== "" && productQty > 0) {
+    addToCart(productToAdd)
   }
   else {
     console.log("product options incomplete");
-    alert('Assurez-vous d\'avoir choisi une couleur et une quantité pour ce produit')
+    alert('Merci de choisir une couleur ET une quantité pour ce produit')
   }
+}
+
+// Add product to cart in local storage 
+/* get current 'cart' array from local storage
+/* if no cart found, create cart array and add product
+/* if cart is not empty:
+/* add product if no existing product with same color color
+/* if existing product/color item, update quantity value only */
+
+function addToCart(productToAdd) {
+  var cart = JSON.parse(localStorage.getItem('cart'));
+
+  if (!localStorage.getItem('cart')) {
+    localStorage.setItem('cart', '[]');
+  }
+
+  if (cart.length === 0) {
+    cart.push(productToAdd);
+    alert('Article ajouté au panier avec succès!');
+  }
+  else {
+    let res = cart.find(element => (element.id === productToAdd.id && element.color === productToAdd.color));
+
+    if (res === undefined) {
+      cart.push(productToAdd);
+      alert('Article ajouté au panier avec succès!');
+    }
+    else {
+      cart.find(element => (element.quantity += productToAdd.quantity));
+      cart.push(element.quantity);
+      alert('Quantité d\'article mise à jour dans le panier!');
+    }
+  }
+  localStorage.setItem('cart', JSON.stringify(cart));
 }
