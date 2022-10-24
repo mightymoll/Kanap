@@ -94,7 +94,7 @@ function addToCart() {
   console.log(productQty);
 
   let product = {
-    _id: productId,
+    id: productId,
     color: productColor,
     qty: productQty
   }
