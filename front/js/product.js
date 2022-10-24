@@ -94,7 +94,7 @@ function addToCart() {
   console.log(productQty);
 
   let product = {
-    id: productId,
+    _id: productId,
     color: productColor,
     qty: productQty
   }
@@ -110,7 +110,7 @@ function addToCart() {
   //add product to cart
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
   const match = cart.find(function (cartItem) {
-    return (cartItem['id'] === productId && cartItem['color'] === productColor)
+    return (cartItem['_id'] === productId && cartItem['color'] === productColor)
   });
 
   if (match) {
