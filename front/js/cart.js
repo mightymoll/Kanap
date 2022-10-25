@@ -11,8 +11,8 @@ fetch('http://localhost:3000/api/products')
 // filter API product data ('catalog') using product/color combinations in cart
 /* returns data for use in DOM manipulation */
 function cartItems(allProducts) {
-  let cart = JSON.parse(localStorage.getItem('cart'));
-  console.log(cart)
+  const cart = JSON.parse(localStorage.getItem('cart'));
+  console.log(cart);
 
   const catalog = allProducts.flatMap(product => {
     return product.colors.map(color => {
@@ -29,38 +29,47 @@ function cartItems(allProducts) {
   });
   console.log(catalog)
 
-  const cartProdData = catalog.filter(function (catalog_el) {
+  let itemQty = cart.map(function (item) {
+    return {
+      qty: item.qty
+    };
+  });
+  console.log(itemQty)
+
+  let cartItems = catalog.filter(function (catalog_el) {
     return cart.filter(function (cart_el) {
       return ((cart_el.id === catalog_el.id) && (cart_el.color === catalog_el.color));
     }).length != 0
   });
-  console.log(cartProdData)
-}
+  console.log(cartItems)
 
-/* UNDER CONSTRUCTION */
-function displayCartItems(cartProdData) {
-  let cartItem = document.createElement("ARTICLE");
+  let addQty = Object.assign(...cartItems, ...itemQty);
+  console.log(addQty)
 
-  for (let article of cartProdData) {
-    cartItem.innerHTML += (`<article class="cart__item" data-id="${article.id}" data-color="${article.color}">  
-    <div class="cart__item__img">
-        <img src="${article.imageUrl}" alt="${article.altTxt}">
+  let cartItem = document.querySelector("#cart__items");
+  for (let product of cartItems) {
+    cartItem.innerHTML += (`
+      <article class="cart__item" data-id="${product.id}" data-color="${product.color}">  
+      <div class="cart__item__img">
+        <img src="${product.imageUrl}" alt="${product.altTxt}">
       </div>
       <div class="cart__item__content">
         <div class="cart__item__content__description">
-          <h2>${article.name}</h2>
-          <p>${article.color}</p>
-          <p>${article.price} €</p>
+          <h2>${product.name}</h2>
+          <p>${product.color}</p>
+          <p>${product.price} €</p>
         </div>
         <div class="cart__item__content__settings">
           <div class="cart__item__content__settings__quantity">
             <p>Qté : </p>
-            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="42">
+            <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${product.qty}">
           </div>
           <div class="cart__item__content__settings__delete">
             <p class="deleteItem">Supprimer</p>
           </div>
         </div>
-      </div>`);
-  } document.getElementById('cart__items')[0].appendChild(cartItem);
+      </div>
+    </article>`);
+  }
 }
+
