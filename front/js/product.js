@@ -67,22 +67,22 @@ function productDisplay(product) {
   }
 }
 
-// Set button event - when clicked, run function 'logOptions' */
+// Set button event - when clicked, run function to add item to cart */
 
 let button = document.getElementById('addToCart');
 button.addEventListener("click", addToCart);
 
-// Log customer choices
-/* get selected color and item input quantity from DOM
-/* define variable for product to be added to cart
-/* if missing color or qty, alert customer to complete selections
-
-// Add product to cart
-/* get 'cart' array from local storage or create one if none exists
-/* define 'match' var: searches the cart for existing items that have the same productid/color combination as incoming
-/* if match exists, update product quantity only
-/* if no match exists, add product to cart
-/* log item in cart by stringifying JSON data > update values in localstorage */
+// addToCart
+/* LOG CUSTOMER CHOICES
+* get selected color and item input quantity from DOM
+* define variable for product to be added to cart
+* if missing color or qty, alert customer to complete selections
+& ADD PRODUCT TO CART
+* get 'cart' array from local storage or create one if none exists
+* search the cart for existing items that have the same productid/color combination as incoming
+* if product exists, update product quantity only
+* if no existing, add product to cart
+* log item in cart by stringifying JSON data & update values in localstorage */
 
 function addToCart() {
   //log customer choices
@@ -98,28 +98,29 @@ function addToCart() {
     color: productColor,
     qty: productQty
   }
+  console.log(product)
 
   if (productColor === "" || productQty === 0) {
     console.log("product options incomplete");
     alert('Merci de choisir une couleur ET une quantité pour ce produit')
   }
-  else {
-    console.log(product)
-  }
 
-  //add product to cart
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
-  const match = cart.find(function (cartItem) {
-    return (cartItem['_id'] === productId && cartItem['color'] === productColor)
-  });
 
-  if (match) {
-    match['qty'] += productQty
-    alert('Quantité d\'article mise à jour dans le panier!')
-  }
-  else {
+  if (cart.length === 0) {
     cart.push(product);
     alert('Article ajouté au panier avec succès!');
-  };
-  localStorage.setItem('cart', JSON.stringify(cart));
+  }
+  else {
+    let existing = cart.find(item => ((item.id === productId) && (item.color === productColor)));
+    if (existing === undefined) {
+      cart.push(product)
+      alert('Article ajouté au panier avec succès!')
+    }
+    else {
+      console.log(existing)
+      existing.qty = productQty;
+      alert('Quantité d\'article mise à jour dans le panier!')
+    }
+  } localStorage.setItem('cart', JSON.stringify(cart));
 }
