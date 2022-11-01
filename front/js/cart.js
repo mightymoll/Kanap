@@ -46,7 +46,7 @@ function cartDisplay(productData) {
         <div class="cart__item__content__description">
           <h2>${item.name}</h2>
           <p>${item.color}</p>
-          <p>${item.price} €</p>
+          <p>${item.price}€</p>
         </div>
         <div class="cart__item__content__settings">
           <div class="cart__item__content__settings__quantity">
@@ -59,6 +59,7 @@ function cartDisplay(productData) {
         </div>
       </div>
     </article> `)
+    cartTotals()
   }
 
   //remove item when 'supprimer' is clicked
@@ -82,7 +83,7 @@ function cartDisplay(productData) {
         clicked.closest('article').remove()
       }
       var cart = tempCart
-    } localStorage.setItem('cart', JSON.stringify(cart))
+    } localStorage.setItem('cart', JSON.stringify(cart));
   }
 
   // update item quantity if changed in input field
@@ -117,10 +118,31 @@ function cartDisplay(productData) {
     console.log(cart)
     localStorage.setItem('cart', JSON.stringify(cart));
   }
+
+  function cartTotals() {
+    let sumItems = parseInt(cart.map((item) => item.qty).reduce((x, y) => x + y, 0));
+
+    let totalQty = document.getElementById('totalQuantity')
+    totalQty.innerHTML = sumItems;
+
+    let costValues = []
+    for (let item of cartItems) {
+      let itemCost = (item.price * item.qty)
+      costValues.push(itemCost)
+    }
+    console.log(costValues)
+    let totalCost = parseInt(costValues.reduce((x, y) => x + y, 0));
+    console.log(totalCost)
+
+    const cartPrice = new Intl.NumberFormat().format(totalCost)
+
+    let totalPrice = document.getElementById('totalPrice')
+    totalPrice.innerHTML = cartPrice;
+  }
 }
 
-
-/*
-function cartTotals() {
-  let totalQty = parseInt(cart.map((x) => x.qty).reduce((x, y) => x + y, 0), 10)
-  console.log(totalQty)*/
+function updateTotals() {
+  if (updateQty() === true || removeItem() === true) {
+    cartTotals()
+  }
+}
