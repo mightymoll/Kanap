@@ -67,6 +67,7 @@ function cartDisplay(productData) {
   for (let i = 0; i < deleteItem.length; i++) {
     let supprimer = deleteItem[i]
     supprimer.addEventListener('click', removeItem)
+    cartTotals()
   }
 
   function removeItem() {
@@ -91,6 +92,7 @@ function cartDisplay(productData) {
   for (let i = 0; i < qtyChange.length; i++) {
     let inputQty = qtyChange[i]
     inputQty.addEventListener('change', updateQty)
+    cartTotals()
   }
 
   function updateQty(input) {
@@ -146,3 +148,77 @@ function updateTotals() {
     cartTotals()
   }
 }
+
+
+let formValues = [];
+let formQuestions = Array(document.querySelectorAll('.cart__order__form')[1])
+formQuestions.addEventListener("change", validateOrderForm);
+for (let i = 0; i < formQuestions.length; i++) {
+  let response = formQuestions.value
+  if (response != null) {
+    validateOrderForm()
+  }
+  formValues.push(response)
+  console.log(formValues)
+}
+
+function validateOrderForm(e) {
+  var textRGEX = /^[a-zA-Z]+$/;
+  var addressRGEX = /^[0-9]{1,4}(([\-\/][0-9]{1,4})|(\/[ABCDFGHJKLMNPRSTV]{1,2}))*$/;
+  var cityRGEX = /^[a-zA-Z]+(?:[\s-][a-zA-Z]+)*$/;
+  var emailRGEX = /(^[^@.]+)@([^@.]+)\.{1}(\w{1,6}$)/;
+
+  function verifyName() {
+    var nameFirst = document.getElementById('firstName').value
+    var nameLast = document.getElementById('lastName').value
+    if (!nameFirst.match(textRGEX)) {
+      let msg = document.getElementById("firstNameErrorMsg")
+      msg.innerHTML += ('Merci d\'entrer un prenom valid');
+      return false;
+    }
+    if (!nameLast.match(textRGEX)) {
+      let msg = document.getElementById("lastNameErrorMsg")
+      msg.innerHTML += ('Merci d\'entrer un nom valid');
+      return false;
+    }
+  }
+  function verifyAddress() {
+    var address = document.getElementById('address').value
+    if (!address.match(addressRGEX)) {
+      let msg = document.getElementById("addressErrorMsg")
+      msg.innerHTML += ('Merci d\'entrer un address valid');
+      return false;
+    }
+    var city = document.getElementById('city').value
+    if (!city.match(cityRGEX)) {
+      let msg = document.getElementById("cityErrorMsg")
+      msg.innerHTML += ('Merci d\'entrer une ville valid');
+      return false;
+    }
+  }
+  function verifyEmail() {
+    var email = document.getElementById('email').value
+    if (!email.match(emailRGEX)) {
+      let msg = document.getElementById("emailErrorMsg")
+      msg.innerHTML += ('Merci d\'entrer un email valid');
+      return false;
+    }
+  }
+}
+
+var submitOrder = document.getElementById("order");
+submitOrder.addEventListener("click", customerData)
+
+function customerData() {
+  let orderFormInputs = document.getElementsByClassName('cart__order__form__question')
+
+  for (let pair of formValues) {
+    console.log((document.closest('label').value) + ": " + pair.value);
+
+    let customer = Object.fromEntries(orderFormInputs);
+    console.log(customer)
+  }
+  localStorage.setItem('customer', JSON.stringify(customer)) || [];
+}
+
+
