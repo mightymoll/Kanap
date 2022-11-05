@@ -17,27 +17,34 @@ Promise.all(getProductData)
     return responses;
   })
   .then(responses => Promise.all(responses.map(r => r.json())))
-  .then(productData => cartDisplay(productData))
+  .then(productData => productArray(productData))
 
   .catch((error) => {
     document.getElementById("cartAndFormContainer").innerHTML = "<h1>error 404</h1>";
     console.log("error 404, could not connect to API" + error);
-  })
+  });
 
-function cartDisplay(productData) {
-  let cartItems = []
+let cartItems = []
+
+function productArray(productData) {
   let products = productData.map(({ name, imageUrl, altTxt, price }) => ({ name, imageUrl, altTxt, price }))
   for (let i = 0; i < cart.length; i++)
     cartItems.push({
       ...cart[i],
       ...products[i]
     });
-
   console.log(cartItems)
+  cartDisplay();
+}
 
-  for (let item of cartItems) {
-    let cartDisplay = document.querySelector("#cart__items");
-    cartDisplay.innerHTML += (`
+function cartDisplay() {
+  if (cartItems.length < 1) {
+    document.getElementById("cartAndFormContainer").innerHTML = "<h1>Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez adorer</a></h1>";
+  }
+  else {
+    for (let item of cartItems) {
+      let displayCart = document.querySelector("#cart__items");
+      displayCart.innerHTML += (`
       <article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
       <div class="cart__item__img">
         <img src="${item.imageUrl}" alt="${item.altTxt}">
@@ -59,69 +66,74 @@ function cartDisplay(productData) {
         </div>
       </div>
     </article> `)
-    cartTotals()
+    }
+    cartTotals();
   }
 
   //remove item when 'supprimer' is clicked
   var deleteItem = document.getElementsByClassName("cart__item__content__settings__delete")
   for (let i = 0; i < deleteItem.length; i++) {
-    let supprimer = deleteItem[i]
+    var supprimer = deleteItem[i]
     supprimer.addEventListener('click', removeItem)
-    cartTotals()
   }
 
   function removeItem() {
-    let clicked = this.closest('article')
+    let clicked = supprimer.closest('article')
     console.log(clicked.dataset.id, clicked.dataset.color)
     let tempCart = [];
     for (let item of cartItems) {
-      let toDelete = cartItems.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
-      if (item != toDelete) {
-        tempCart.push(item)
-        console.log(tempCart)
-      }
-      else {
-        clicked.closest('article').remove()
-      }
-      var cart = tempCart
-    } localStorage.setItem('cart', JSON.stringify(cart));
+      return new Promise(function (resolve) {
+        let toDelete = cartItems.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
+        if (item != toDelete) {
+          tempCart.push(item)
+          console.log(tempCart)
+        }
+        else {
+          clicked.closest('article').remove()
+        }
+        var cart = tempCart
+        localStorage.setItem('cart', JSON.stringify(cart))
+        return resolve()
+      })
+    }
   }
 
   // update item quantity if changed in input field
   let qtyChange = document.getElementsByClassName('itemQuantity');
   for (let i = 0; i < qtyChange.length; i++) {
-    let inputQty = qtyChange[i]
+    var inputQty = qtyChange[i]
     inputQty.addEventListener('change', updateQty)
-    cartTotals()
   }
 
-  function updateQty(input) {
-    const inputQty = input.target.valueAsNumber
-    console.log(inputQty)
-    let newQty = input.target.closest("article")
-    console.log(newQty.dataset.id, newQty.dataset.color)
+  function updateQty() {
+    let newQty = inputQty.valueAsNumber
+    let changedQty = inputQty.closest("article")
+    console.log(changedQty.dataset.id, changedQty.dataset.color)
     let tempCart = [];
     let currentCart = JSON.parse(localStorage.getItem("cart")) || [];
-
     for (let item of currentCart) {
-      let qtyChanged = currentCart.find(item => (item.id === newQty.dataset.id && item.color === newQty.dataset.color));
-      if (inputQty === 0) { alert('Merci de cliquez sur \'Supprimer\' pour retirer un article de votre panier') }
-      if (inputQty > 100) { alert('Merci d\'entrer une quantité entre 1 et 100') }
-      if (item === qtyChanged) {
-        item.qty = inputQty
-        console.log(item)
-        tempCart.push(item)
-        alert('Quantité d\'article mise à jour')
-      }
-      else {
-        tempCart.push(item)
-      }
-    } var cart = tempCart
-    console.log(cart)
-    localStorage.setItem('cart', JSON.stringify(cart));
+      return new Promise(function (resolve) {
+        let qtyChanged = currentCart.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
+        if (inputQty === 0) { alert('Merci de cliquez sur \'Supprimer\' pour retirer un article de votre panier') }
+        if (inputQty > 100) { alert('Merci d\'entrer une quantité entre 1 et 100') }
+        if (item === qtyChanged) {
+          item.qty = newQty
+          console.log(item)
+          tempCart.push(item)
+          alert('Quantité d\'article mise à jour')
+        }
+        else {
+          tempCart.push(item)
+        } var cart = tempCart
+        console.log(cart)
+        localStorage.setItem('cart', JSON.stringify(cart));
+        return resolve()
+      })
+    }
   }
 
   function cartTotals() {
+    localStorage.getItem('cart', JSON.stringify(cart));
     let sumItems = parseInt(cart.map((item) => item.qty).reduce((x, y) => x + y, 0));
 
     let totalQty = document.getElementById('totalQuantity')
@@ -143,82 +155,125 @@ function cartDisplay(productData) {
   }
 }
 
-function updateTotals() {
-  if (updateQty() === true || removeItem() === true) {
-    cartTotals()
+async function calcCartTotals() {
+  if (updateQty) {
+    await updateQty().then(cartTotals)
+    console.log('item qty changed, re-calculating cart');
+  }
+  if (removeItem) {
+    await removeItem().then(cartTotals())
+    console.log('item removed, re-calculating cart');
   }
 }
 
 
-let formValues = [];
-let formQuestions = Array(document.querySelectorAll('.cart__order__form')[1])
-formQuestions.addEventListener("change", validateOrderForm);
-for (let i = 0; i < formQuestions.length; i++) {
-  let response = formQuestions.value
-  if (response != null) {
-    validateOrderForm()
+// cart order form
+let firstName = document.getElementById('firstName')
+let lastName = document.getElementById('lastName')
+let address = document.getElementById('address')
+let city = document.getElementById('city')
+let email = document.getElementById('email')
+
+let commander = document.getElementById("order");
+
+// RGEX for form input validation
+var nameRGEX = /^[a-zA-Zéêëèîïâäçù ,'-]{3,20}$/;
+var addressRGEX = /^[0-9]{1,3}[a-zA-Zéêëèîïâäçù ,'-]+$/;
+var emailRGEX = /^(([^<()[\]\\.,;:\s@\]+(\.[^<()[\]\\.,;:\s@\]+)*)|(.+))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;
+
+// form input listeners to verify inputs
+firstName.addEventListener('change', verifyFirstName)
+lastName.addEventListener('change', verifyLastName)
+address.addEventListener('change', verifyAddress)
+city.addEventListener('change', verifyCity)
+email.addEventListener('change', verifyEmail)
+
+function verifyForm() {
+  let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
+  let formInputs = document.getElementsByClassName('cart__order__form__question');
+  for (let i = 0; i < formInputs.length; i++) {
+    let response = formInputs[1].value
+    if (response = true) {
+      customerData.push(response)
+      console.log(response)
+    }
+    else if (Promise.all(formInputs))
+      console.log(orderInfo)
+    /*submitOrder()*/
   }
-  formValues.push(response)
-  console.log(formValues)
+  localStorage.setItem('customerData', JSON.stringify(input));
 }
 
-function validateOrderForm(e) {
-  var textRGEX = /^[a-zA-Z]+$/;
-  var addressRGEX = /^[0-9]{1,4}(([\-\/][0-9]{1,4})|(\/[ABCDFGHJKLMNPRSTV]{1,2}))*$/;
-  var cityRGEX = /^[a-zA-Z]+(?:[\s-][a-zA-Z]+)*$/;
-  var emailRGEX = /(^[^@.]+)@([^@.]+)\.{1}(\w{1,6}$)/;
-
-  function verifyName() {
-    var nameFirst = document.getElementById('firstName').value
-    var nameLast = document.getElementById('lastName').value
-    if (!nameFirst.match(textRGEX)) {
-      let msg = document.getElementById("firstNameErrorMsg")
-      msg.innerHTML += ('Merci d\'entrer un prenom valid');
-      return false;
-    }
-    if (!nameLast.match(textRGEX)) {
-      let msg = document.getElementById("lastNameErrorMsg")
-      msg.innerHTML += ('Merci d\'entrer un nom valid');
-      return false;
-    }
+function verifyFirstName() {
+  let msg = document.getElementById("firstNameErrorMsg")
+  if (nameRGEX.test(firstName.value)) {
+    msg.innerHTML += ('')
+    console.log('first name validated:' + firstName.value)
+    return true;
   }
-  function verifyAddress() {
-    var address = document.getElementById('address').value
-    if (!address.match(addressRGEX)) {
-      let msg = document.getElementById("addressErrorMsg")
-      msg.innerHTML += ('Merci d\'entrer un address valid');
-      return false;
-    }
-    var city = document.getElementById('city').value
-    if (!city.match(cityRGEX)) {
-      let msg = document.getElementById("cityErrorMsg")
-      msg.innerHTML += ('Merci d\'entrer une ville valid');
-      return false;
-    }
+  else {
+    msg.innerHTML += ('Merci d\'entrer un prenom valid')
+    return false;
   }
-  function verifyEmail() {
-    var email = document.getElementById('email').value
-    if (!email.match(emailRGEX)) {
-      let msg = document.getElementById("emailErrorMsg")
-      msg.innerHTML += ('Merci d\'entrer un email valid');
-      return false;
-    }
+}
+function verifyLastName() {
+  let msg = document.getElementById("lastNameErrorMsg")
+  if (nameRGEX.test(lastName.value)) {
+    msg.innerHTML += ('');
+    console.log('last name validated:' + lastName.value)
+    return true;
+  }
+  else {
+    msg.innerHTML += ('Merci d\'entrer un nom valid');
+    return false;
   }
 }
 
-var submitOrder = document.getElementById("order");
-submitOrder.addEventListener("click", customerData)
-
-function customerData() {
-  let orderFormInputs = document.getElementsByClassName('cart__order__form__question')
-
-  for (let pair of formValues) {
-    console.log((document.closest('label').value) + ": " + pair.value);
-
-    let customer = Object.fromEntries(orderFormInputs);
-    console.log(customer)
+function verifyAddress() {
+  let msg = document.getElementById("addressErrorMsg")
+  if (addressRGEX.test(address.value)) {
+    msg.innerHTML += ('')
+    console.log('address validated:' + address.value)
+    return true;
   }
-  localStorage.setItem('customer', JSON.stringify(customer)) || [];
+  else {
+    msg.innerHTML += ('Merci d\'entrer un address valid');
+    return false;
+  }
+}
+
+function verifyCity() {
+  let msg = document.getElementById("cityErrorMsg")
+  if (nameRGEX.test(city.value)) {
+    msg.innerHTML += ('')
+    console.log('city validated:' + city.value)
+    return true;
+  }
+  else {
+    msg.innerHTML += ('Merci d\'entrer une ville valide');
+    return false;
+  }
+}
+
+function verifyEmail() {
+  let msg = document.getElementById("emailErrorMsg")
+  if (emailRGEX.test(email.value)) {
+    msg.innerHTML += ('')
+    console.log('email validated:' + email.value)
+    return true;
+  }
+  else {
+    msg.innerHTML += ('Merci d\'entrer un adresse mail valide');
+  } return false;
+}
+
+function submitOrder() {
+  for (let question of formInputs) {
+    console.log((question[0] + ": " + question[1].value))
+    let orderInfo = Object.fromEntries(formInputs + [cart]);
+    console.log(orderInfo)
+  }
+  localStorage.setItem('order', JSON.stringify(orderInfo)) || [];
 }
 
 
