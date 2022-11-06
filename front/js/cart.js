@@ -1,7 +1,7 @@
 // get cart items from local storage
-var cart = JSON.parse(localStorage.getItem("cart")) || [];
+var cart = JSON.parse(localStorage.getItem("cart"));
 
-var productIds = cart.map(cart => cart.id)
+let productIds = cart.map(cart => cart.id)
 console.log(productIds);
 
 let baseURL = "http://localhost:3000/api/products";
@@ -27,6 +27,7 @@ Promise.all(getProductData)
 let cartItems = []
 
 function productArray(productData) {
+  let cart = JSON.parse(localStorage.getItem("cart"));
   let products = productData.map(({ name, imageUrl, altTxt, price }) => ({ name, imageUrl, altTxt, price }))
   for (let i = 0; i < cart.length; i++)
     cartItems.push({
@@ -34,7 +35,7 @@ function productArray(productData) {
       ...products[i]
     });
   console.log(cartItems)
-  cartDisplay();
+  cartDisplay()
 }
 
 function cartDisplay() {
@@ -71,31 +72,30 @@ function cartDisplay() {
   }
 
   //remove item when 'supprimer' is clicked
-  var deleteItem = document.getElementsByClassName("cart__item__content__settings__delete")
+  var deleteItem = document.getElementsByClassName("deleteItem")
   for (let i = 0; i < deleteItem.length; i++) {
-    var supprimer = deleteItem[i]
+    let supprimer = deleteItem[i]
     supprimer.addEventListener('click', removeItem)
   }
 
-  function removeItem() {
-    let clicked = supprimer.closest('article')
+  function removeItem(event) {
+    let clicked = event.target.closest('article')
     console.log(clicked.dataset.id, clicked.dataset.color)
     let tempCart = [];
     for (let item of cartItems) {
-      return new Promise(function (resolve) {
-        let toDelete = cartItems.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
-        if (item != toDelete) {
-          tempCart.push(item)
-          console.log(tempCart)
-        }
-        else {
-          clicked.closest('article').remove()
-        }
-        var cart = tempCart
-        localStorage.setItem('cart', JSON.stringify(cart))
-        return resolve()
-      })
+      let toDelete = cartItems.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
+      if (item != toDelete) {
+        tempCart.push(item)
+      }
+      else {
+        console.log(item)
+        clicked.remove()
+      }
     }
+    console.log(tempCart)
+    let cart = tempCart
+    localStorage.setItem('cart', JSON.stringify(cart))
+    cartTotals()
   }
 
   // update item quantity if changed in input field
@@ -110,62 +110,51 @@ function cartDisplay() {
     let changedQty = inputQty.closest("article")
     console.log(changedQty.dataset.id, changedQty.dataset.color)
     let tempCart = [];
-    let currentCart = JSON.parse(localStorage.getItem("cart")) || [];
-    for (let item of currentCart) {
-      return new Promise(function (resolve) {
-        let qtyChanged = currentCart.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
-        if (inputQty === 0) { alert('Merci de cliquez sur \'Supprimer\' pour retirer un article de votre panier') }
-        if (inputQty > 100) { alert('Merci d\'entrer une quantité entre 1 et 100') }
-        if (item === qtyChanged) {
-          item.qty = newQty
-          console.log(item)
-          tempCart.push(item)
-          alert('Quantité d\'article mise à jour')
-        }
-        else {
-          tempCart.push(item)
-        } var cart = tempCart
-        console.log(cart)
-        localStorage.setItem('cart', JSON.stringify(cart));
-        return resolve()
-      })
+    for (let item of cartItems) {
+      let qtyChanged = cartItems.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
+      if (inputQty === 0) { alert('Merci de cliquez sur \'Supprimer\' pour retirer un article de votre panier') }
+      if (inputQty > 100) { alert('Merci d\'entrer une quantité entre 1 et 100') }
+      if (item === qtyChanged) {
+        item.qty = newQty
+        console.log(item)
+        tempCart.push(item)
+        alert('Quantité d\'article mise à jour')
+      }
+      else {
+        tempCart.push(item)
+      }
     }
+    let cart = tempCart
+    localStorage.setItem('cart', JSON.stringify(cart));
+    console.log(cart)
+    cartTotals();
   }
 
   function cartTotals() {
-    localStorage.getItem('cart', JSON.stringify(cart));
-    let sumItems = parseInt(cart.map((item) => item.qty).reduce((x, y) => x + y, 0));
+    let cart = JSON.parse(localStorage.getItem("cart"));
+    let itemQuantities = [];
+    let costValues = [];
 
-    let totalQty = document.getElementById('totalQuantity')
-    totalQty.innerHTML = sumItems;
-
-    let costValues = []
-    for (let item of cartItems) {
+    for (let i = 0; i < cart.length; i++) {
+      let item = cart[i]
+      itemQuantities.push(item.qty)
       let itemCost = (item.price * item.qty)
       costValues.push(itemCost)
     }
-    console.log(costValues)
+
+    let sumItems = parseInt(itemQuantities.reduce((x, y) => x + y, 0));
+    let showTotalQty = document.getElementById('totalQuantity')
+    showTotalQty.innerHTML = sumItems;
+
     let totalCost = parseInt(costValues.reduce((x, y) => x + y, 0));
     console.log(totalCost)
 
     const cartPrice = new Intl.NumberFormat().format(totalCost)
 
-    let totalPrice = document.getElementById('totalPrice')
-    totalPrice.innerHTML = cartPrice;
+    let showTotalPrice = document.getElementById('totalPrice')
+    showTotalPrice.innerHTML = cartPrice;
   }
 }
-
-async function calcCartTotals() {
-  if (updateQty) {
-    await updateQty().then(cartTotals)
-    console.log('item qty changed, re-calculating cart');
-  }
-  if (removeItem) {
-    await removeItem().then(cartTotals())
-    console.log('item removed, re-calculating cart');
-  }
-}
-
 
 // cart order form
 let firstName = document.getElementById('firstName')
@@ -275,5 +264,3 @@ function submitOrder() {
   }
   localStorage.setItem('order', JSON.stringify(orderInfo)) || [];
 }
-
-
