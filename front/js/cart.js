@@ -71,15 +71,15 @@ function cartDisplay() {
     cartTotals();
   }
 
-  //remove item when 'supprimer' is clicked
+  //remove item when "supprimer" is clicked
   var deleteItem = document.getElementsByClassName("deleteItem")
   for (let i = 0; i < deleteItem.length; i++) {
     let supprimer = deleteItem[i]
-    supprimer.addEventListener('click', removeItem)
+    supprimer.addEventListener("click", removeItem)
   }
 
   function removeItem(event) {
-    let clicked = event.target.closest('article')
+    let clicked = event.target.closest("article")
     console.log(clicked.dataset.id, clicked.dataset.color)
     let tempCart = [];
     for (let item of cartItems) {
@@ -94,15 +94,15 @@ function cartDisplay() {
     }
     console.log(tempCart)
     let cart = tempCart
-    localStorage.setItem('cart', JSON.stringify(cart))
+    localStorage.setItem("cart", JSON.stringify(cart))
     cartTotals()
   }
 
   // update item quantity if changed in input field
-  let qtyChange = document.getElementsByClassName('itemQuantity');
+  let qtyChange = document.getElementsByClassName("itemQuantity");
   for (let i = 0; i < qtyChange.length; i++) {
     var inputQty = qtyChange[i]
-    inputQty.addEventListener('change', updateQty)
+    inputQty.addEventListener("change", updateQty)
   }
 
   function updateQty() {
@@ -112,20 +112,20 @@ function cartDisplay() {
     let tempCart = [];
     for (let item of cartItems) {
       let qtyChanged = cartItems.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
-      if (inputQty === 0) { alert('Merci de cliquez sur \'Supprimer\' pour retirer un article de votre panier') }
-      if (inputQty > 100) { alert('Merci d\'entrer une quantité entre 1 et 100') }
+      if (inputQty === 0) { alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier") }
+      if (inputQty > 100) { alert("Merci d\"entrer une quantité entre 1 et 100") }
       if (item === qtyChanged) {
         item.qty = newQty
         console.log(item)
         tempCart.push(item)
-        alert('Quantité d\'article mise à jour')
+        alert("Quantité d\"article mise à jour")
       }
       else {
         tempCart.push(item)
       }
     }
     let cart = tempCart
-    localStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem("cart", JSON.stringify(cart));
     console.log(cart)
     cartTotals();
   }
@@ -137,13 +137,13 @@ function cartDisplay() {
 
     for (let i = 0; i < cart.length; i++) {
       let item = cart[i]
-      itemQuantities.push(item.qty)
+      itemQuantities.push(Number(item.qty))
       let itemCost = (item.price * item.qty)
       costValues.push(itemCost)
     }
 
     let sumItems = parseInt(itemQuantities.reduce((x, y) => x + y, 0));
-    let showTotalQty = document.getElementById('totalQuantity')
+    let showTotalQty = document.getElementById("totalQuantity")
     showTotalQty.innerHTML = sumItems;
 
     let totalCost = parseInt(costValues.reduce((x, y) => x + y, 0));
@@ -151,116 +151,158 @@ function cartDisplay() {
 
     const cartPrice = new Intl.NumberFormat().format(totalCost)
 
-    let showTotalPrice = document.getElementById('totalPrice')
+    let showTotalPrice = document.getElementById("totalPrice")
     showTotalPrice.innerHTML = cartPrice;
   }
 }
 
-// cart order form
-let firstName = document.getElementById('firstName')
-let lastName = document.getElementById('lastName')
-let address = document.getElementById('address')
-let city = document.getElementById('city')
-let email = document.getElementById('email')
+const form = document.querySelector(".cart__order__form");
 
-let commander = document.getElementById("order");
+var questions = document.querySelectorAll(".cart__order__form__question > input")
+console.log(questions)
 
-// RGEX for form input validation
-var nameRGEX = /^[a-zA-Zéêëèîïâäçù ,'-]{3,20}$/;
-var addressRGEX = /^[0-9]{1,3}[a-zA-Zéêëèîïâäçù ,'-]+$/;
-var emailRGEX = /^(([^<()[\]\\.,;:\s@\]+(\.[^<()[\]\\.,;:\s@\]+)*)|(.+))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;
+const firstName = document.getElementById("firstName")
+const lastName = document.getElementById("lastName")
+const address = document.getElementById("address")
+const city = document.getElementById("city")
+const email = document.getElementById("email")
 
-// form input listeners to verify inputs
-firstName.addEventListener('change', verifyFirstName)
-lastName.addEventListener('change', verifyLastName)
-address.addEventListener('change', verifyAddress)
-city.addEventListener('change', verifyCity)
-email.addEventListener('change', verifyEmail)
-
-function verifyForm() {
-  let customerData = JSON.parse(localStorage.getItem('customerData')) || [];
-  let formInputs = document.getElementsByClassName('cart__order__form__question');
-  for (let i = 0; i < formInputs.length; i++) {
-    let response = formInputs[1].value
-    if (response = true) {
-      customerData.push(response)
-      console.log(response)
-    }
-    else if (Promise.all(formInputs))
-      console.log(orderInfo)
-    /*submitOrder()*/
-  }
-  localStorage.setItem('customerData', JSON.stringify(input));
+const contact = {
+  firstName: firstName.value,
+  lastName: lastName.value,
+  address: address.value,
+  city: city.value,
+  email: email.value
 }
 
-function verifyFirstName() {
+// Regular expressions to test input validity
+const nameRGEX = /^[a-zA-Zéêëèîïâäçù ,"-]{3,20}$/;
+const addressRGEX = /^[0-9]{1,3}[a-zA-Zéêëèîïâäçù ,"-]+$/;
+const emailRGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
+
+// Assign class name that references input validity when page loads
+window.addEventListener("load", () => {
+  for (let question of questions) {
+    const isValid = question.value.length === 0;
+    question.className = isValid ? "valid" : "invalid";
+  }
+});
+
+// When user types in the field(s)
+firstName.addEventListener("input", () => {
   let msg = document.getElementById("firstNameErrorMsg")
-  if (nameRGEX.test(firstName.value)) {
-    msg.innerHTML += ('')
-    console.log('first name validated:' + firstName.value)
-    return true;
+  const isValid = nameRGEX.test(firstName.value);
+  if (isValid) {
+    firstName.className = "valid";
+    msg.textContent = "";
+    console.log(firstName.value)
+    Object.assign(contact, { firstName: firstName.value });
+    localStorage.setItem('contactData', JSON.stringify(contact))
   }
   else {
-    msg.innerHTML += ('Merci d\'entrer un prenom valid')
-    return false;
+    firstName.className = "invalid";
+    msg.textContent = "Merci d\"entrer un prénom valide";
   }
-}
-function verifyLastName() {
+  console.log(firstName.className)
+});
+
+lastName.addEventListener("input", () => {
   let msg = document.getElementById("lastNameErrorMsg")
-  if (nameRGEX.test(lastName.value)) {
-    msg.innerHTML += ('');
-    console.log('last name validated:' + lastName.value)
-    return true;
+  const isValid = nameRGEX.test(lastName.value);
+  if (isValid) {
+    lastName.className = "valid";
+    msg.textContent = "";
+    console.log(lastName.value)
+    Object.assign(contact, { lastName: lastName.value });
+    localStorage.setItem('contactData', JSON.stringify(contact))
   }
   else {
-    msg.innerHTML += ('Merci d\'entrer un nom valid');
-    return false;
+    firstName.className = "invalid";
+    msg.textContent = "Merci d\"entrer un nom valide";
   }
-}
+  console.log(lastName.className)
+});
 
-function verifyAddress() {
+address.addEventListener("input", () => {
   let msg = document.getElementById("addressErrorMsg")
-  if (addressRGEX.test(address.value)) {
-    msg.innerHTML += ('')
-    console.log('address validated:' + address.value)
-    return true;
+  const isValid = addressRGEX.test(address.value);
+  if (isValid) {
+    address.className = "valid";
+    msg.textContent = "";
+    console.log(address.value)
+    Object.assign(contact, { address: address.value });
+    localStorage.setItem('contactData', JSON.stringify(contact))
   }
   else {
-    msg.innerHTML += ('Merci d\'entrer un address valid');
-    return false;
+    address.className = "invalid";
+    msg.textContent = "Merci d\"entrer un adrese valide";
   }
-}
+  console.log(address.className)
+});
 
-function verifyCity() {
+city.addEventListener("input", () => {
   let msg = document.getElementById("cityErrorMsg")
-  if (nameRGEX.test(city.value)) {
-    msg.innerHTML += ('')
-    console.log('city validated:' + city.value)
-    return true;
+  const isValid = nameRGEX.test(city.value);
+  if (isValid) {
+    city.className = "valid";
+    msg.textContent = "";
+    console.log(city.value)
+    Object.assign(contact, { city: city.value });
+    localStorage.setItem('contactData', JSON.stringify(contact))
   }
   else {
-    msg.innerHTML += ('Merci d\'entrer une ville valide');
-    return false;
+    city.className = "invalid";
+    msg.textContent = "Merci d\"entrer une ville valide";
   }
-}
+  console.log(city.className)
+});
 
-function verifyEmail() {
+email.addEventListener("input", () => {
   let msg = document.getElementById("emailErrorMsg")
-  if (emailRGEX.test(email.value)) {
-    msg.innerHTML += ('')
-    console.log('email validated:' + email.value)
-    return true;
+  const isValid = emailRGEX.test(email.value);
+  if (isValid) {
+    email.className = "valid";
+    msg.textContent = "";
+    console.log(email.value)
+    Object.assign(contact, { email: email.value });
+    localStorage.setItem('contactData', JSON.stringify(contact))
   }
   else {
-    msg.innerHTML += ('Merci d\'entrer un adresse mail valide');
-  } return false;
-}
-
-function submitOrder() {
-  for (let question of formInputs) {
-    console.log((question[0] + ": " + question[1].value))
-    let orderInfo = Object.fromEntries(formInputs + [cart]);
-    console.log(orderInfo)
+    email.className = "invalid";
+    msg.textContent = "Merci d\"entrer un adresse mail valide";
   }
-  localStorage.setItem('order', JSON.stringify(orderInfo)) || [];
+  console.log(email.className)
+});
+
+// When user submits data (check all for validity)
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  let validResponses = document.getElementsByClassName("valid")
+  console.log(validResponses.length)
+  if (validResponses.length = form.length) {
+    submitOrder()
+  }
+  else {
+    console.log("not all form values are valid")
+  }
+});
+
+//function runs if all form question inputs are valid
+/* send order information to API
+/* request order number in return */
+
+async function submitOrder() {
+  const products = cart.map(item => item.id)
+  const order = { contact, products }
+  console.log(order)
+
+  await fetch("http://localhost:3000/api/products/order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(order)
+  })
+    .then(response => response.json())
+    .then(response => console.log(response.orderId))
+
+    .catch(error => console.error('Error:', error));
 }
