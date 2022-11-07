@@ -296,13 +296,22 @@ async function submitOrder() {
   const order = { contact, products }
   console.log(order)
 
+
   await fetch("http://localhost:3000/api/products/order", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order)
   })
-    .then(response => response.json())
-    .then(response => console.log(response.orderId))
+    .then((response) => response.json())
+    .then((response) => {
+      console.log(response.orderId)
+      let baseURL = "./confirmation.html?order="
+      let confirmationURL = (baseURL + response.orderId)
+      console.log(confirmationURL)
+      window.location = confirmationURL
+    })
 
-    .catch(error => console.error('Error:', error));
+    .catch(error => console.error('Error:', error))
 }
+
+
