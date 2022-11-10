@@ -1,14 +1,42 @@
-// get cart items from local storage
-var cart = JSON.parse(localStorage.getItem("cart"));
+// Global Variables
+var header = document.querySelector("h1")
+var cart = JSON.parse(localStorage.getItem('cart'))
+var itemQuantities = [];
+var itemTotals = [];
+var tempCart = [];
+var productUrls = [];
 
-let productIds = cart.map(cart => cart.id)
-console.log(productIds);
+var products = [];
+var cartItems = [];
 
-let baseURL = "http://localhost:3000/api/products";
-let productUrls = productIds.map((productId) => {
-  return `${baseURL}/${productId}`
-})
-console.log(productUrls);
+var item = "";
+var product = "";
+
+var totalItems = document.getElementById("totalQuantity")
+var cartTotal = document.getElementById("totalPrice")
+// Functions 
+getCart()
+
+function getCart() {
+  JSON.parse(localStorage.getItem('cart'))
+  if (!localStorage.getItem('cart') || cart.length === 0 || localStorage.getItem('cart') == null) {
+    header.innerHTML = (`Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez aimer</a>`)
+    totalItems.innerHTML = '0'
+    cartTotal.innerHTML = '0'
+  }
+  if (cart.length >= 1) {
+    let item = cart.map(({ id, color, qty }) => ({ id, color, qty }))
+    cartItems.push(...item)
+    console.log(cartItems)
+    for (let item of cartItems) {
+      itemQuantities.push(item.qty)
+      let itemAPI = "http://localhost:3000/api/products/" + item.id
+      productUrls.push(itemAPI)
+    }
+    console.log(itemQuantities)
+    console.log(productUrls)
+  }
+}
 
 let getProductData = productUrls.map(url => fetch(url))
 
@@ -20,41 +48,35 @@ Promise.all(getProductData)
   .then(productData => productArray(productData))
 
   .catch((error) => {
-    document.getElementById("cartAndFormContainer").innerHTML = "<h1>error 404</h1>";
-    console.log("error 404, could not connect to API" + error);
+    totalItems.innerHTML = '0'
+    header.innerHTML = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
+    console.log("could not connect to product's API" + error);
   });
 
-let cartItems = []
-
 function productArray(productData) {
-  let cart = JSON.parse(localStorage.getItem("cart"));
-  let products = productData.map(({ name, imageUrl, altTxt, price }) => ({ name, imageUrl, altTxt, price }))
-  for (let i = 0; i < cart.length; i++)
-    cartItems.push({
-      ...cart[i],
-      ...products[i]
-    });
-  console.log(cartItems)
-  cartDisplay()
+  let product = productData.map(({ name, imageUrl, altTxt, price }) => ({ name, imageUrl, altTxt, price }))
+  products.push(...product)
+  console.log(products)
+  displayCart()
 }
+console.log(itemTotals)
 
-function cartDisplay() {
-  if (cartItems.length < 1) {
-    document.getElementById("cartAndFormContainer").innerHTML = "<h1>Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez adorer</a></h1>";
-  }
-  else {
-    for (let item of cartItems) {
-      let displayCart = document.querySelector("#cart__items");
-      displayCart.innerHTML += (`
-      <article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
+function displayCart() {
+  for (let i = 0; i < cartItems.length; i++) {
+    let item = cartItems[i]
+    let product = products[i]
+    itemTotals.push((item.qty * product.price))
+    console.log(itemTotals)
+    let cartDisplay = document.getElementById("cart__items")
+    cartDisplay.innerHTML += (`<article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
       <div class="cart__item__img">
-        <img src="${item.imageUrl}" alt="${item.altTxt}">
+        <img src="${product.imageUrl}" alt="${product.altTxt}">
       </div>
       <div class="cart__item__content">
         <div class="cart__item__content__description">
-          <h2>${item.name}</h2>
+          <h2>${product.name}</h2>
           <p>${item.color}</p>
-          <p>${item.price}€</p>
+          <p>${product.price}€</p>
         </div>
         <div class="cart__item__content__settings">
           <div class="cart__item__content__settings__quantity">
@@ -62,98 +84,87 @@ function cartDisplay() {
             <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${item.qty}">
           </div>
           <div class="cart__item__content__settings__delete">
-            <p class="deleteItem">Supprimer</p>
+            <p class="deleteItem" onclick="removeItem()">Supprimer</p>
           </div>
         </div>
       </div>
-    </article> `)
-    }
-    cartTotals();
+    </article>`)
   }
+  displayTotals()
+}
 
-  //remove item when "supprimer" is clicked
-  var deleteItem = document.getElementsByClassName("deleteItem")
+function displayTotals() {
+  let cartPrice = parseInt(itemTotals.reduce((x, y) => x + y, 0));
+  let cartPriceFormatted = new Intl.NumberFormat().format(cartPrice)
+  let totalQty = parseInt(itemQuantities.reduce((x, y) => x + y, 0));
+  totalItems.innerHTML = totalQty
+  cartTotal.innerHTML = cartPriceFormatted
+}
+
+//remove item when "supprimer" is clicked
+document.addEventListener('DOMContentLoaded', function () {
+
+  var deleteItem = document.getElementsByClassName("cart__item__content__settings__delete")
   for (let i = 0; i < deleteItem.length; i++) {
-    let supprimer = deleteItem[i]
-    supprimer.addEventListener("click", removeItem)
+    var supprimer = deleteItem[i]
+    supprimer.addEventListener('click', removeItem)
   }
 
-  function removeItem(event) {
-    let clicked = event.target.closest("article")
-    console.log(clicked.dataset.id, clicked.dataset.color)
-    let tempCart = [];
-    for (let item of cartItems) {
-      let toDelete = cartItems.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
-      if (item != toDelete) {
-        tempCart.push(item)
-      }
-      else {
-        console.log(item)
-        clicked.remove()
-      }
-    }
-    console.log(tempCart)
-    let cart = tempCart
-    localStorage.setItem("cart", JSON.stringify(cart))
-    cartTotals()
-  }
-
-  // update item quantity if changed in input field
-  let qtyChange = document.getElementsByClassName("itemQuantity");
+  var qtyChange = document.getElementsByClassName("itemQuantity");
   for (let i = 0; i < qtyChange.length; i++) {
-    var inputQty = qtyChange[i]
-    inputQty.addEventListener("change", updateQty)
+    var qtyChanged = qtyChange[i]
+    qtyChanged.addEventListener('change', updateQty)
   }
+});
 
-  function updateQty() {
-    let newQty = inputQty.valueAsNumber
-    let changedQty = inputQty.closest("article")
-    console.log(changedQty.dataset.id, changedQty.dataset.color)
-    let tempCart = [];
-    for (let item of cartItems) {
-      let qtyChanged = cartItems.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
-      if (inputQty === 0) { alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier") }
-      if (inputQty > 100) { alert("Merci d\"entrer une quantité entre 1 et 100") }
-      if (item === qtyChanged) {
-        item.qty = newQty
-        console.log(item)
-        tempCart.push(item)
-        alert("Quantité d\"article mise à jour")
-      }
-      else {
-        tempCart.push(item)
-      }
+function removeItem() {
+  let clicked = event.currentTarget.closest('article');
+  console.log(clicked.dataset.id, clicked.dataset.color)
+  let tempCart = [];
+  let currentCart = getCart()
+  for (let item of currentCart) {
+    let toDelete = currentCart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
+    if (item != toDelete) {
+      tempCart.push(item)
+      console.log(tempCart)
     }
-    let cart = tempCart
-    localStorage.setItem("cart", JSON.stringify(cart));
-    console.log(cart)
-    cartTotals();
-  }
-
-  function cartTotals() {
-    let cart = JSON.parse(localStorage.getItem("cart"));
-    let itemQuantities = [];
-    let costValues = [];
-
-    for (let i = 0; i < cart.length; i++) {
-      let item = cart[i]
-      itemQuantities.push(Number(item.qty))
-      let itemCost = (item.price * item.qty)
-      costValues.push(itemCost)
+    else {
+      clicked.closest('article').remove()
     }
-
-    let sumItems = parseInt(itemQuantities.reduce((x, y) => x + y, 0));
-    let showTotalQty = document.getElementById("totalQuantity")
-    showTotalQty.innerHTML = sumItems;
-
-    let totalCost = parseInt(costValues.reduce((x, y) => x + y, 0));
-    console.log(totalCost)
-
-    const cartPrice = new Intl.NumberFormat().format(totalCost)
-
-    let showTotalPrice = document.getElementById("totalPrice")
-    showTotalPrice.innerHTML = cartPrice;
   }
+  let cart = tempCart
+  localStorage.setItem('cart', JSON.stringify(cart))
+  displayTotals();
+}
+
+/** END OF RECONFIG 1 UPDATE **/
+
+// update item quantity if changed in input field
+function updateQty() {
+  var newQty = event.target.valueAsNumber
+  console.log(newQty)
+  var qtyChanged = event.target.closest('article');
+  console.log(qtyChanged.dataset.id, qtyChanged.dataset.color)
+  let tempCart = [];
+  let currentCart = getCart()
+  for (let item of currentCart) {
+    let qtyChanged = cart.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
+    if (inputQty === 0 || inputQty === NaN) { alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier") }
+    if (inputQty > 100 || inputQty === NaN) { alert("Merci d\"entrer une quantité entre 1 et 100") }
+    if (item != qtyChanged) {
+      tempCart.push(item)
+    }
+    else {
+      item.qty = newQty
+      console.log(item)
+      tempCart.push(item)
+      alert("Quantité d\"article mise à jour")
+    }
+  }
+  let cart = tempCart
+  /*localStorage.setItem("cart", JSON.stringify(cart));*/
+  console.log(cart)
+  displayTotals();
 }
 
 const form = document.querySelector(".cart__order__form");
@@ -183,7 +194,7 @@ const emailRGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
 // Assign class name that references input validity when page loads
 window.addEventListener("load", () => {
   for (let question of questions) {
-    const isValid = question.value.length === 0;
+    const isValid = question.value.length > 0;
     question.className = isValid ? "valid" : "invalid";
   }
 });
@@ -290,7 +301,7 @@ form.addEventListener("submit", (event) => {
 //function runs if all form question inputs are valid
 /* send order information to API
 /* request order number in return */
-
+/*
 async function submitOrder() {
   const products = cart.map(item => item.id)
   const order = { contact, products }
@@ -312,6 +323,6 @@ async function submitOrder() {
     })
 
     .catch(error => console.error('Error:', error))
-}
+}*/
 
 
