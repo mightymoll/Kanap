@@ -1,82 +1,52 @@
 // Global Variables
-var header = document.querySelector("h1")
-var cart = JSON.parse(localStorage.getItem('cart'))
-var itemQuantities = [];
-var itemTotals = [];
-var tempCart = [];
-var productUrls = [];
+let cart = JSON.parse(localStorage.getItem('cart'))
 
-var products = [];
-var cartItems = [];
+let totalQty = 0;
+let totalPrice = 0;
 
-var item = "";
-var product = "";
+let header = document.querySelector("h1")
+let cartList = document.getElementById("cart__items")
+let articlesTotal = document.getElementById("totalQuantity")
+let priceTotal = document.getElementById("totalPrice")
 
-var totalItems = document.getElementById("totalQuantity")
-var cartTotal = document.getElementById("totalPrice")
-// Functions 
-getCart()
+getCart().then(displayCart())
 
-function getCart() {
-  JSON.parse(localStorage.getItem('cart'))
-  if (!localStorage.getItem('cart') || cart.length === 0 || localStorage.getItem('cart') == null) {
+async function getCart() {
+  if (!cart || cart.length == 0) {
     header.innerHTML = (`Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez aimer</a>`)
-    totalItems.innerHTML = '0'
-    cartTotal.innerHTML = '0'
+    return console.log('cart is empty or does not exist');
   }
-  if (cart.length >= 1) {
-    let item = cart.map(({ id, color, qty }) => ({ id, color, qty }))
-    cartItems.push(...item)
-    console.log(cartItems)
-    for (let item of cartItems) {
-      itemQuantities.push(item.qty)
-      let itemAPI = "http://localhost:3000/api/products/" + item.id
-      productUrls.push(itemAPI)
-    }
-    console.log(itemQuantities)
-    console.log(productUrls)
+  else {
+    await createCartItems()
+    console.log('cart item data fetched')
+  }
+  return cart
+}
+
+async function createCartItems() {
+  for (let item of cart) {
+    let productData = await getProductData(item.id)
+    item['imageUrl'] = productData.imageUrl;
+    item['altTxt'] = productData.altTxt;
+    item['name'] = productData.name;
+    item['price'] = productData.price;
   }
 }
 
-let getProductData = productUrls.map(url => fetch(url))
-
-Promise.all(getProductData)
-  .then(responses => {
-    return responses;
-  })
-  .then(responses => Promise.all(responses.map(r => r.json())))
-  .then(productData => productArray(productData))
-
-  .catch((error) => {
-    totalItems.innerHTML = '0'
-    header.innerHTML = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
-    console.log("could not connect to product's API" + error);
-  });
-
-function productArray(productData) {
-  let product = productData.map(({ name, imageUrl, altTxt, price }) => ({ name, imageUrl, altTxt, price }))
-  products.push(...product)
-  console.log(products)
-  displayCart()
-}
-console.log(itemTotals)
-
-function displayCart() {
-  for (let i = 0; i < cartItems.length; i++) {
-    let item = cartItems[i]
-    let product = products[i]
-    itemTotals.push((item.qty * product.price))
-    console.log(itemTotals)
-    let cartDisplay = document.getElementById("cart__items")
-    cartDisplay.innerHTML += (`<article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
+async function displayCart() {
+  await getCart()
+  console.log(cart)
+  for (let item of cart) {
+    let cartListItem = document.createElement('article')
+    cartListItem.innerHTML = (`<article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
       <div class="cart__item__img">
-        <img src="${product.imageUrl}" alt="${product.altTxt}">
+        <img src="${item.imageUrl}" alt="${item.altTxt}">
       </div>
       <div class="cart__item__content">
         <div class="cart__item__content__description">
-          <h2>${product.name}</h2>
+          <h2>${item.name}</h2>
           <p>${item.color}</p>
-          <p>${product.price}€</p>
+          <p">${item.price}€</p>
         </div>
         <div class="cart__item__content__settings">
           <div class="cart__item__content__settings__quantity">
@@ -84,87 +54,113 @@ function displayCart() {
             <input type="number" class="itemQuantity" name="itemQuantity" min="1" max="100" value="${item.qty}">
           </div>
           <div class="cart__item__content__settings__delete">
-            <p class="deleteItem" onclick="removeItem()">Supprimer</p>
+            <p class="deleteItem">Supprimer</p>
           </div>
         </div>
       </div>
-    </article>`)
-  }
-  displayTotals()
+    </article>`);
+    cartList.appendChild(cartListItem);
+
+    totalQty += item.qty
+    totalPrice += (item.qty * item.price)
+  };
+  console.log(totalPrice)
+  console.log(totalQty)
+
+  articlesTotal.innerHTML = totalQty
+  priceTotal.innerHTML = new Intl.NumberFormat().format(totalPrice)
 }
 
-function displayTotals() {
-  let cartPrice = parseInt(itemTotals.reduce((x, y) => x + y, 0));
-  let cartPriceFormatted = new Intl.NumberFormat().format(cartPrice)
-  let totalQty = parseInt(itemQuantities.reduce((x, y) => x + y, 0));
-  totalItems.innerHTML = totalQty
-  cartTotal.innerHTML = cartPriceFormatted
+async function calcCartTotals() {
+  await createCartItems()
+  for (let item of cart) {
+    let itemCost = item.qty * item.price
+
+  }
+  totalQty += item.qty
+  totalPrice += itemCost
+  console.log(totalQty, totalPrice)
 }
 
-//remove item when "supprimer" is clicked
-document.addEventListener('DOMContentLoaded', function () {
 
-  var deleteItem = document.getElementsByClassName("cart__item__content__settings__delete")
-  for (let i = 0; i < deleteItem.length; i++) {
-    var supprimer = deleteItem[i]
-    supprimer.addEventListener('click', removeItem)
+async function getProductData() {
+  for (let item of cart) {
+    return fetch("http://localhost:3000/api/products/" + item.id)
+      .then(function (res) {
+        return res.json();
+      })
+      .catch((error) => {
+        totalQty = '?';
+        totalPrice = '?';
+        header.innerHTML = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
+        console.log("could not connect to item's API" + error);
+      })
   }
+}
 
-  var qtyChange = document.getElementsByClassName("itemQuantity");
-  for (let i = 0; i < qtyChange.length; i++) {
-    var qtyChanged = qtyChange[i]
-    qtyChanged.addEventListener('change', updateQty)
-  }
-});
+async function eventListeners() {
+  document.querySelectorAll('.itemQuantity').forEach(input => {
+    input.addEventListener('change', updateQty)
+  });
 
-function removeItem() {
-  let clicked = event.currentTarget.closest('article');
+  document.querySelectorAll(".deleteItem").forEach(p => {
+    p.addEventListener('click', removeItem)
+  });
+}
+eventListeners()
+
+
+// remove item if 'supprimer' is clicked
+function removeItem(event) {
+  getCart()
+  let clicked = event.target.closest('article')
   console.log(clicked.dataset.id, clicked.dataset.color)
   let tempCart = [];
-  let currentCart = getCart()
-  for (let item of currentCart) {
-    let toDelete = currentCart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
+  for (let i = 0; i < cart.length; i++) {
+    let toDelete = cart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
     if (item != toDelete) {
-      tempCart.push(item)
-      console.log(tempCart)
+      tempCart.push(item[qty, color, id])
     }
     else {
-      clicked.closest('article').remove()
+      console.log(item)
+      clicked.remove()
     }
   }
+  console.log(tempCart)
   let cart = tempCart
-  localStorage.setItem('cart', JSON.stringify(cart))
-  displayTotals();
+  /*localStorage.setItem('cart', JSON.stringify(cart))*/
 }
 
-/** END OF RECONFIG 1 UPDATE **/
-
 // update item quantity if changed in input field
-function updateQty() {
-  var newQty = event.target.valueAsNumber
-  console.log(newQty)
-  var qtyChanged = event.target.closest('article');
-  console.log(qtyChanged.dataset.id, qtyChanged.dataset.color)
-  let tempCart = [];
-  let currentCart = getCart()
-  for (let item of currentCart) {
-    let qtyChanged = cart.find(item => (item.id === changedQty.dataset.id && item.color === changedQty.dataset.color));
-    if (inputQty === 0 || inputQty === NaN) { alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier") }
-    if (inputQty > 100 || inputQty === NaN) { alert("Merci d\"entrer une quantité entre 1 et 100") }
-    if (item != qtyChanged) {
-      tempCart.push(item)
-    }
-    else {
-      item.qty = newQty
-      console.log(item)
-      tempCart.push(item)
-      alert("Quantité d\"article mise à jour")
+async function updateQty(event) {
+  await displayCart()
+  let newQty = event.target
+  console.log(newQty.value)
+  if (newQty.value === 0) {
+    alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier")
+  }
+  if ((isNan(newQty.value) || newQty.value > 100)) {
+    alert("Merci d\"entrer une quantité entre 1 et 100")
+  }
+  else {
+    const changed = newQty.closest('article')
+    console.log(changed.dataset.id, changed.dataset.color)
+    for (let item of cart) {
+      let hasNewQty = cart.find(item => (item.id === changed.dataset.id && item.color === changed.dataset.color));
+      if (item != hasNewQty) {
+        tempCart.push(item[id, qty, color])
+      }
+      else {
+        item.qty = newQty
+        console.log(item)
+        tempCart.push(item[id, qty, color])
+        alert("Quantité d\"article mise à jour")
+      }
+      let cart = tempCart
+      /*localStorage.setItem("cart", JSON.stringify(cart));*/
+      console.log(cart)
     }
   }
-  let cart = tempCart
-  /*localStorage.setItem("cart", JSON.stringify(cart));*/
-  console.log(cart)
-  displayTotals();
 }
 
 const form = document.querySelector(".cart__order__form");
@@ -192,10 +188,10 @@ const addressRGEX = /^[0-9]{1,3}[a-zA-Zéêëèîïâäçù ,"-]+$/;
 const emailRGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
 
 // Assign class name that references input validity when page loads
-window.addEventListener("load", () => {
+window.addEventListener('load', () => {
   for (let question of questions) {
     const isValid = question.value.length > 0;
-    question.className = isValid ? "valid" : "invalid";
+    question.className = isValid ? 'valid' : 'invalid';
   }
 });
 
@@ -306,8 +302,6 @@ async function submitOrder() {
   const products = cart.map(item => item.id)
   const order = { contact, products }
   console.log(order)
-
-
   await fetch("http://localhost:3000/api/products/order", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -321,8 +315,5 @@ async function submitOrder() {
       console.log(confirmationURL)
       window.location = confirmationURL
     })
-
     .catch(error => console.error('Error:', error))
 }*/
-
-
