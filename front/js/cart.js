@@ -1,28 +1,29 @@
 // Global Variables for Cart Display //
-let cart = JSON.parse(localStorage.getItem('cart'))
+const header = document.querySelector("h1")
+const itemDisplay = document.querySelector('#cart__items')
+const articlesTotal = document.getElementById("totalQuantity")
+const priceTotal = document.getElementById("totalPrice")
 
 let totalQty = 0;
 let totalPrice = 0;
 
-let header = document.querySelector("h1")
-const itemDisplay = document.querySelector('#cart__items')
-let articlesTotal = document.getElementById("totalQuantity")
-let priceTotal = document.getElementById("totalPrice")
-
-console.log(cart)
-if (!cart || cart.length == 0) {
-  header.innerHTML = (`Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez aimer</a>`)
-  console.log('cart is empty or does not exist');
+function getCart() {
+  let cart = JSON.parse(localStorage.getItem('cart'))
+  if (!cart || cart.length == 0) {
+    header.innerHTML = (`Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez aimer</a>`)
+    totalQty = '0';
+    totalPrice = '0';
+    console.log('cart is empty or does not exist');
+  };
+  return cart
 }
 
 async function displayCart() {
+  let cart = await getCart()
+  console.log(cart)
   for (i = 0; i < cart.length; i++) {
     const productData = await getProductData((cart[i].id))
     const item = { ...cart[i], ...productData }
-    const itemCost = parseInt(item.price * item.qty)
-
-    totalQty += item.qty
-    totalPrice += itemCost
 
     itemDisplay.innerHTML += (`<article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
       <div class="cart__item__img">
@@ -45,10 +46,9 @@ async function displayCart() {
         </div>
       </div>
     </article>`)
-    articlesTotal.innerHTML = totalQty
-    priceTotal.innerHTML = new Intl.NumberFormat().format(totalPrice)
   }
-}
+  calcCartTotals()
+};
 
 async function getProductData(id) {
   return fetch("http://localhost:3000/api/products/" + id)
@@ -62,44 +62,45 @@ async function getProductData(id) {
       header = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
       response = console.log("could not connect to item's API" + error);
     })
-}
+};
 displayCart()
 
+async function calcCartTotals() {
+  let cart = await getCart()
+  for (i = 0; i < cart.length; i++) {
+    const productData = await getProductData((cart[i].id))
+    const item = { ...cart[i], ...productData }
 
-document.querySelectorAll('.itemQuantity').forEach(input => {
-  input.addEventListener('change', updateQty)
-});
-
-document.querySelectorAll(".deleteItem").forEach(p => {
-  p.addEventListener('click', removeItem)
-});
-
-
-// remove item if 'supprimer' is clicked
-function removeItem(event) {
-  getCart()
-  let clicked = event.target.closest('article')
-  console.log(clicked.dataset.id, clicked.dataset.color)
-  const tempCart = [];
-  for (let i = 0; i < cart.length; i++) {
-    const toDelete = cart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
-    if (item != toDelete) {
-      tempCart.push(item[qty, color, id])
-    }
-    else {
-      console.log(item)
-      clicked.remove()
-    }
+    totalQty += item.qty;
+    totalPrice += parseInt(item.qty * item.price)
   }
-  console.log(tempCart)
-  let cart = tempCart
-  /*localStorage.setItem('cart', JSON.stringify(cart))*/
+  articlesTotal.innerHTML = totalQty
+  priceTotal.innerHTML = new Intl.NumberFormat().format(totalPrice)
 }
 
-// update item quantity if changed in input field
-async function updateQty(event) {
-  await displayCart()
-  const newQty = event.target
+const supprimer = document.getElementsByClassName('deleteItem')
+supprimer.forEach(addEventListener('click', (e) => {
+  const clicked = e.target.closest('article')
+  const currentCart = JSON.parse(localStorage.getItem('cart'))
+  const tempCart = [];
+  for (let item of currentCart) {
+    const toDelete = currentCart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
+    if (item != toDelete) {
+      tempCart.push(item)
+    }
+    else {
+      clicked.remove()
+      console.log('cart item deleted')
+    }
+  }
+  let cart = tempCart
+  localStorage.setItem('cart', JSON.stringify(cart))
+}
+));
+
+const qtyInputs = document.getElementsByClassName('itemQuantity')
+qtyInputs.forEach(addEventListener('input', (e) => {
+  const newQty = e.target
   console.log(newQty.value)
   if (newQty.value === 0) {
     alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier")
@@ -122,11 +123,13 @@ async function updateQty(event) {
         alert("Quantité d\"article mise à jour")
       }
       let cart = tempCart
-      /*localStorage.setItem("cart", JSON.stringify(cart));*/
-      console.log(cart)
+      localStorage.setItem("cart", JSON.stringify(cart));
     }
   }
-}
+}));
+
+// --- ORDER FORM --- //
+// Variables for order form //
 
 const form = document.querySelector(".cart__order__form");
 
