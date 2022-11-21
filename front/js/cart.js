@@ -1,29 +1,63 @@
-// Global Variables for Cart Display //
-const header = document.querySelector("h1")
-const itemDisplay = document.querySelector('#cart__items')
-const articlesTotal = document.getElementById("totalQuantity")
-const priceTotal = document.getElementById("totalPrice")
+// Global variables for cart page //
+let cart = JSON.parse(localStorage.getItem('cart'))
+let header = document.querySelector("h1")
+let articlesTotal = document.getElementById("totalQuantity")
+let priceTotal = document.getElementById("totalPrice")
 
-let totalQty = 0;
-let totalPrice = 0;
 
-function getCart() {
-  let cart = JSON.parse(localStorage.getItem('cart'))
-  if (!cart || cart.length == 0) {
+/** FUNCTIONS FOR CART DISPLAY:
+ * checkCartStatus = if cart is empty, display link to homepage
+ * getProductData = fetch item data from API using product's id
+ * createCartItems = for each item, await the return of productData JSON, then combine with cart data
+ * displayCart = loop over 'cartItems' to display data from API and localstorage for each item
+ * calcCartTotals = get price from 'cartItems' and calculate total quantities & price based on existing cart
+ * addEventListeners = once cartData is displayed, create event listeners for html elements
+ *  -removeItem = if 'supprimer' is clicked, delete item and update cart in localstorage
+ *  -qtyChange = if input quantity is changed by user, update localstorage
+ *  if either eventListener is triggered; calcCartTotals again 
+ *  calcCartTotals returns to checkCartStatus if cart is empty
+ */
+
+function checkCartStatus() {
+  cart = JSON.parse(localStorage.getItem('cart'))
+  console.log(cart)
+  if (!cart || cart.length < 1) {
     header.innerHTML = (`Votre panier est vide<br><a href=./index.html style=font-size:18px;>trouvez un produit que vous allez aimer</a>`)
-    totalQty = '0';
-    totalPrice = '0';
-    console.log('cart is empty or does not exist');
-  };
-  return cart
+    articlesTotal.innerHTML = '0'
+    priceTotal.innerHTML = '0'
+    console.log('cart is empty or does not exist / le panier est vide ou il n\'existe pas');
+  }
+  else {
+    console.log('cart is not empty / le panier n\'est pas vide')
+  }
+}
+checkCartStatus()
+
+async function getProductData(id) {
+  return fetch("http://localhost:3000/api/products/" + id)
+    .then(res => res.json())
+    .catch((error) => {
+      articlesTotal.innerHTML = '?';
+      priceTotal.innerHTML = '?';
+      header = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
+      response = console.log("could not connect to item's API" + error);
+    })
+}
+
+async function createCartItems() {
+  let cartItems = [];
+  for (let i = 0; i < cart.length; i++) {
+    let productData = await getProductData(cart[i].id)
+    const product = { ...cart[i], ...productData }
+    cartItems.push(product)
+  }
+  return cartItems
 }
 
 async function displayCart() {
-  let cart = await getCart()
-  console.log(cart)
-  for (i = 0; i < cart.length; i++) {
-    const productData = await getProductData((cart[i].id))
-    const item = { ...cart[i], ...productData }
+  let cartItems = await createCartItems(console.log)
+  for (let item of cartItems) {
+    const itemDisplay = document.querySelector('#cart__items')
 
     itemDisplay.innerHTML += (`<article class="cart__item" data-id="${item.id}" data-color="${item.color}">  
       <div class="cart__item__img">
@@ -47,90 +81,84 @@ async function displayCart() {
       </div>
     </article>`)
   }
-  calcCartTotals()
-};
-
-async function getProductData(id) {
-  return fetch("http://localhost:3000/api/products/" + id)
-    .then(res => res.json())
-    .then(function (response) {
-      return response;
-    })
-    .catch((error) => {
-      totalQty = '?';
-      totalPrice = '?';
-      header = (`Sacre Bleu!<p style=font-size:18px;>une erreur est survenue<br>merci de revenir plus tard</p></h1>`)
-      response = console.log("could not connect to item's API" + error);
-    })
-};
-displayCart()
+}
 
 async function calcCartTotals() {
-  let cart = await getCart()
-  for (i = 0; i < cart.length; i++) {
-    const productData = await getProductData((cart[i].id))
-    const item = { ...cart[i], ...productData }
-
-    totalQty += item.qty;
-    totalPrice += parseInt(item.qty * item.price)
+  let totalQty = 0;
+  let totalPrice = 0;
+  let cart = JSON.parse(localStorage.getItem('cart'))
+  if (!cart || cart.length < 1) {
+    checkCartStatus()
   }
-  articlesTotal.innerHTML = totalQty
-  priceTotal.innerHTML = new Intl.NumberFormat().format(totalPrice)
-}
-
-const supprimer = document.getElementsByClassName('deleteItem')
-supprimer.forEach(addEventListener('click', (e) => {
-  const clicked = e.target.closest('article')
-  const currentCart = JSON.parse(localStorage.getItem('cart'))
-  const tempCart = [];
-  for (let item of currentCart) {
-    const toDelete = currentCart.find(item => (item.id === clicked.dataset.id && item.color === clicked.dataset.color));
-    if (item != toDelete) {
-      tempCart.push(item)
+  else {
+    let cartItems = await createCartItems()
+    for (i = 0; i < cart.length; i++) {
+      let price = cartItems[i].price
+      let quantity = cart[i].qty
+      totalQty += parseInt(quantity);
+      totalPrice += parseInt(price * quantity);
     }
-    else {
-      clicked.remove()
-      console.log('cart item deleted')
-    }
+    articlesTotal.innerHTML = totalQty
+    priceTotal.innerHTML = new Intl.NumberFormat().format(totalPrice)
   }
-  let cart = tempCart
-  localStorage.setItem('cart', JSON.stringify(cart))
 }
-));
+calcCartTotals()
 
-const qtyInputs = document.getElementsByClassName('itemQuantity')
-qtyInputs.forEach(addEventListener('input', (e) => {
+async function addEventListeners() {
+  await displayCart()
+  const qtyInputs = document.getElementsByClassName('itemQuantity')
+  for (let input of qtyInputs) {
+    input.addEventListener('change', updateQty)
+  }
+  const deleteItems = document.getElementsByClassName('deleteItem')
+  for (let p of deleteItems) {
+    p.addEventListener('click', removeItem)
+  }
+  console.log("event listener\'s listening on (" + (qtyInputs.length) + ") quantity inputs & ("
+    + (deleteItems.length) + ") 'supprimer'")
+}
+addEventListeners()
+
+async function updateQty(e) {
   const newQty = e.target
   console.log(newQty.value)
+  // check that value entered is valid data
   if (newQty.value === 0) {
     alert("Merci de cliquez sur \"Supprimer\" pour retirer un article de votre panier")
   }
-  if ((isNan(newQty.value) || newQty.value > 100)) {
+  if (newQty.value > 100 || isNaN(newQty.value)) {
     alert("Merci d\"entrer une quantité entre 1 et 100")
   }
   else {
     const changed = newQty.closest('article')
     console.log(changed.dataset.id, changed.dataset.color)
-    for (let item of cart) {
-      const hasNewQty = cart.find(item => (item.id === changed.dataset.id && item.color === changed.dataset.color));
-      if (item != hasNewQty) {
-        tempCart.push(item[id, qty, color])
+    //use map to find item and assign new quantity
+    cart.map((item) => {
+      if (item.id === changed.dataset.id && item.color === changed.dataset.color) {
+        item.qty = Number(newQty.value)
       }
-      else {
-        item.qty = newQty
-        console.log(item)
-        tempCart.push(item[id, qty, color])
-        alert("Quantité d\"article mise à jour")
-      }
-      let cart = tempCart
-      localStorage.setItem("cart", JSON.stringify(cart));
-    }
+    });
+    localStorage.setItem('cart', JSON.stringify(cart))
+    alert(`Quantité d'article mise à jour`)
   }
-}));
+  calcCartTotals()
+}
+
+async function removeItem(e) {
+  let cart = JSON.parse(localStorage.getItem('cart'))
+  const clicked = e.target.closest('article')
+  console.log('item to be deleted: ' + clicked.dataset.id, clicked.dataset.color)
+  const toDelete = cart.find(item => ((item.id && item.color) === (clicked.dataset.id && clicked.dataset.color)));
+  // filter cart to consist of remaining items only
+  const filtered = cart.filter(item => item !== toDelete)
+  cart = localStorage.setItem('cart', JSON.stringify(filtered))
+  clicked.remove(e)
+  alert(`produit a été supprimé`)
+  calcCartTotals()
+}
 
 // --- ORDER FORM --- //
 // Variables for order form //
-
 const form = document.querySelector(".cart__order__form");
 
 let questions = document.querySelectorAll(".cart__order__form__question > input")
