@@ -304,6 +304,8 @@ async function submitOrder() {
   })
     .then((response) => response.json())
     .then((response) => {
+      localStorage.clear('cart')
+      console.log('localstorage cart has been cleared')
       console.log(response.orderId)
       const baseURL = "./confirmation.html?order="
       const confirmationURL = (baseURL + response.orderId)
